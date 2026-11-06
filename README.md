@@ -2,7 +2,7 @@
 
 Enter any URL and it fetches the live HTTP response headers server-side, then checks them
 against the controls that defend against clickjacking, XSS, cookie theft, MIME-sniffing,
-and protocol downgrade attacks — the same checks a web security review starts with.
+and protocol downgrade attacks, the same checks a web security review starts with.
 
 **Live tool is the proof** — no lab, no screenshots needed. Anyone (recruiters included)
 can paste a URL and watch it work.
