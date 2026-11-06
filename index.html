@@ -3,237 +3,232 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Headerscope — security header analyzer</title>
+<title>Headerscope — HTTP security header analyzer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0b0f14;
-    --bg-panel: #10151c;
-    --bg-raised: #161c25;
-    --line: #202834;
-    --ink: #e4e9ef;
-    --ink-dim: #8a96a6;
-    --ink-faint: #4e5a6b;
-    --amber: #e2a33f;
-    --teal: #35c9a0;
-    --coral: #ef6358;
+    --bg: #fafafa;
+    --panel: #ffffff;
+    --border: #e3e6eb;
+    --border-strong: #cdd2da;
+    --ink: #1b2026;
+    --ink-dim: #5b6472;
+    --ink-faint: #99a1ad;
+    --accent: #28539c;
+    --accent-bg: #eaf0fa;
+    --pass: #2f7a52;
+    --pass-bg: #eaf5ef;
+    --fail: #ab3a32;
+    --fail-bg: #fbebea;
+    --warn: #8a6315;
+    --warn-bg: #f7f0e1;
+    color-scheme: light;
   }
   * { box-sizing: border-box; }
   html, body {
     margin: 0;
     background: var(--bg);
     color: var(--ink);
-    font-family: "IBM Plex Sans", sans-serif;
+    font-family: "Public Sans", -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
   body { min-height: 100vh; }
-  a { color: inherit; }
+  a { color: var(--accent); }
+  code, .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; }
 
-  .wrap {
-    max-width: 760px;
-    margin: 0 auto;
-    padding: 0 20px 72px;
-  }
+  .wrap { max-width: 740px; margin: 0 auto; padding: 0 22px 80px; }
 
   /* --- Nav --- */
   nav {
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+  }
+  .nav-inner {
+    max-width: 740px;
+    margin: 0 auto;
+    padding: 18px 22px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    max-width: 760px;
-    margin: 0 auto;
-    padding: 26px 20px 0;
   }
   .wordmark {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    font-family: "IBM Plex Mono", monospace;
-    font-weight: 600;
-    font-size: 15px;
+    font-weight: 700;
+    font-size: 15.5px;
     letter-spacing: -0.01em;
+    color: var(--ink);
   }
-  .wordmark .dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--amber);
-    box-shadow: 0 0 10px rgba(226, 163, 63, 0.6);
-    flex-shrink: 0;
-  }
-  .tabs {
-    display: flex;
-    gap: 4px;
-    background: var(--bg-panel);
-    border: 1px solid var(--line);
-    border-radius: 7px;
-    padding: 3px;
-  }
+  .tabs { display: flex; gap: 22px; }
   .tab-btn {
-    font-family: "IBM Plex Mono", monospace;
-    font-size: 12.5px;
-    color: var(--ink-dim);
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--ink-faint);
     background: none;
     border: none;
-    padding: 7px 13px;
-    border-radius: 5px;
+    padding: 4px 0;
     cursor: pointer;
-    transition: background 0.15s ease, color 0.15s ease;
+    border-bottom: 2px solid transparent;
   }
-  .tab-btn.active { background: var(--bg-raised); color: var(--ink); }
-  .tab-btn:not(.active):hover { color: var(--ink); }
+  .tab-btn.active { color: var(--ink); border-bottom-color: var(--accent); }
+  .tab-btn:not(.active):hover { color: var(--ink-dim); }
 
   .view { display: none; }
   .view.active { display: block; }
 
   /* --- Scan hero --- */
-  .hero { padding: 40px 0 26px; }
+  .hero { padding: 44px 0 8px; }
   h1 {
-    font-family: "IBM Plex Mono", monospace;
-    font-weight: 600;
-    font-size: clamp(26px, 4.6vw, 34px);
-    line-height: 1.28;
-    letter-spacing: -0.01em;
-    margin: 0 0 12px;
+    font-size: clamp(25px, 4.2vw, 31px);
+    font-weight: 700;
+    line-height: 1.32;
+    letter-spacing: -0.015em;
+    margin: 0 0 13px;
     color: var(--ink);
+    max-width: 18ch;
   }
   .lede {
-    font-size: 15px;
+    font-size: 15.5px;
     line-height: 1.65;
     color: var(--ink-dim);
     max-width: 54ch;
     margin: 0;
   }
 
-  form {
-    display: flex;
-    gap: 10px;
-    margin-top: 26px;
-  }
+  form { display: flex; gap: 10px; margin-top: 28px; }
   input[type="text"] {
     flex: 1;
     min-width: 0;
-    background: var(--bg-panel);
-    border: 1px solid var(--line);
+    background: var(--panel);
+    border: 1px solid var(--border-strong);
     color: var(--ink);
     font-family: "IBM Plex Mono", monospace;
     font-size: 14px;
-    padding: 14px 16px;
+    padding: 12px 14px;
     border-radius: 6px;
     outline: none;
-    transition: border-color 0.15s ease;
   }
   input[type="text"]::placeholder { color: var(--ink-faint); }
-  input[type="text"]:focus { border-color: var(--amber); }
+  input[type="text"]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-bg); }
   button {
-    background: var(--amber);
-    color: #1a1304;
+    background: var(--accent);
+    color: #fff;
     border: none;
-    font-family: "IBM Plex Mono", monospace;
+    font-family: inherit;
     font-weight: 600;
     font-size: 14px;
-    padding: 14px 20px;
+    padding: 12px 20px;
     border-radius: 6px;
     cursor: pointer;
-    transition: filter 0.15s ease;
     white-space: nowrap;
   }
-  button:hover { filter: brightness(1.08); }
+  button:hover { background: #1f4480; }
   button:disabled { opacity: 0.5; cursor: default; }
 
   .status {
-    font-family: "IBM Plex Mono", monospace;
     font-size: 13px;
     color: var(--ink-dim);
-    margin-top: 14px;
+    margin-top: 12px;
     min-height: 18px;
   }
-  .status.err { color: var(--coral); }
+  .status.err { color: var(--fail); }
 
   /* --- Results --- */
-  .report { display: none; margin-top: 8px; }
+  .report { display: none; margin-top: 6px; }
   .report.show { display: block; }
 
   .summary {
     display: flex;
     align-items: center;
-    gap: 22px;
-    background: var(--bg-panel);
-    border: 1px solid var(--line);
+    gap: 24px;
+    background: var(--panel);
+    border: 1px solid var(--border);
     border-radius: 8px;
     padding: 22px;
-    margin-top: 24px;
+    margin-top: 26px;
   }
-  .score-ring { position: relative; width: 84px; height: 84px; flex-shrink: 0; }
-  .score-ring svg { transform: rotate(-90deg); }
-  .score-ring circle { fill: none; stroke-width: 6; }
-  .score-ring .track { stroke: var(--line); }
-  .score-ring .fill { stroke: var(--amber); stroke-linecap: round; transition: stroke-dashoffset 0.6s ease; }
+  .score-block { flex-shrink: 0; text-align: center; }
   .score-num {
-    position: absolute; inset: 0;
-    display: flex; align-items: center; justify-content: center;
-    font-family: "IBM Plex Mono", monospace;
-    font-weight: 600; font-size: 19px;
+    font-size: 34px;
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
   }
-  .summary-text .target {
+  .score-label {
+    font-size: 11px;
+    color: var(--ink-faint);
+    margin-top: 4px;
+    text-transform: lowercase;
+  }
+  .summary-right { flex: 1; min-width: 0; }
+  .summary-right .target {
     font-family: "IBM Plex Mono", monospace;
     font-size: 12.5px;
     color: var(--ink-dim);
     word-break: break-all;
   }
-  .summary-text .verdict { font-size: 15px; margin-top: 5px; font-weight: 500; }
+  .summary-right .verdict { font-size: 15px; margin-top: 5px; font-weight: 600; }
+  .score-bar {
+    margin-top: 10px;
+    height: 5px;
+    border-radius: 3px;
+    background: var(--border);
+    overflow: hidden;
+  }
+  .score-bar-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
 
   .checks {
     margin-top: 18px;
-    display: flex; flex-direction: column; gap: 1px;
-    background: var(--line);
-    border: 1px solid var(--line);
+    display: flex; flex-direction: column;
+    border: 1px solid var(--border);
     border-radius: 8px;
     overflow: hidden;
+    background: var(--panel);
   }
-  .check { background: var(--bg-panel); padding: 15px 18px; }
-  .check-top { display: flex; align-items: center; gap: 10px; }
-  .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-  .dot.pass { background: var(--teal); }
-  .dot.fail { background: var(--coral); }
-  .dot.weak { background: var(--amber); }
-  .check-label {
-    font-family: "IBM Plex Mono", monospace;
-    font-size: 13.5px;
+  .check { padding: 15px 18px; border-bottom: 1px solid var(--border); }
+  .check:last-child { border-bottom: none; }
+  .check-top { display: flex; align-items: flex-start; gap: 10px; }
+  .glyph {
+    width: 17px; height: 17px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .glyph.pass { color: var(--pass); }
+  .glyph.fail { color: var(--fail); }
+  .glyph.weak { color: var(--warn); }
+  .check-label { font-size: 14px; font-weight: 600; flex: 1; }
+  .impact {
+    font-size: 11px;
     font-weight: 500;
-    flex: 1;
-  }
-  .sev {
-    font-family: "IBM Plex Mono", monospace;
-    font-size: 10.5px;
-    color: var(--ink-dim);
-    border: 1px solid var(--line);
-    padding: 2px 7px;
-    border-radius: 3px;
+    padding: 2px 8px;
+    border-radius: 10px;
     white-space: nowrap;
     flex-shrink: 0;
   }
-  .check.weak .sev::after { content: " · weak"; }
+  .impact.high { color: var(--fail); background: var(--fail-bg); }
+  .impact.medium { color: var(--warn); background: var(--warn-bg); }
+  .impact.low { color: var(--ink-dim); background: var(--bg); }
   .check-detail {
-    font-size: 12.5px;
+    font-size: 13px;
     color: var(--ink-dim);
-    margin: 7px 0 0 18px;
-    line-height: 1.55;
+    margin: 7px 0 0 27px;
+    line-height: 1.6;
     word-break: break-word;
   }
 
   /* --- About tab --- */
-  .about { padding: 40px 0 10px; }
-  .about h1 { margin-bottom: 16px; }
-  .about section { margin-top: 34px; }
+  .about { padding: 44px 0 10px; }
+  .about h1 { max-width: none; margin-bottom: 14px; }
+  .about > .lede { margin-bottom: 0; }
+  .about section { margin-top: 36px; }
   .about h2 {
-    font-family: "IBM Plex Mono", monospace;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--amber);
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--ink);
     margin: 0 0 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
   }
   .about p {
     font-size: 14.5px;
@@ -242,18 +237,17 @@
     max-width: 58ch;
     margin: 0 0 10px;
   }
-  .about ul { margin: 10px 0 0; padding-left: 20px; }
+  .about ul { margin: 10px 0 0; padding-left: 19px; }
   .about li {
     font-size: 14.5px;
     line-height: 1.7;
     color: var(--ink-dim);
-    margin-bottom: 6px;
+    margin-bottom: 7px;
   }
   .about code {
-    font-family: "IBM Plex Mono", monospace;
-    font-size: 13px;
-    background: var(--bg-panel);
-    border: 1px solid var(--line);
+    font-size: 12.5px;
+    background: var(--bg);
+    border: 1px solid var(--border);
     padding: 1px 6px;
     border-radius: 4px;
     color: var(--ink);
@@ -261,50 +255,44 @@
   .about-author {
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-top: 34px;
+    gap: 13px;
+    margin-top: 36px;
     padding: 18px;
-    background: var(--bg-panel);
-    border: 1px solid var(--line);
+    background: var(--panel);
+    border: 1px solid var(--border);
     border-radius: 8px;
   }
   .about-author .avatar {
-    width: 38px; height: 38px;
+    width: 36px; height: 36px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--amber), var(--coral));
+    background: var(--accent);
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
     flex-shrink: 0;
   }
-  .about-author .name {
-    font-family: "IBM Plex Mono", monospace;
-    font-size: 13.5px;
-    font-weight: 600;
-  }
-  .about-author .role {
-    font-size: 12.5px;
-    color: var(--ink-dim);
-    margin-top: 2px;
-  }
+  .about-author .name { font-size: 14px; font-weight: 600; }
+  .about-author .role { font-size: 12.5px; color: var(--ink-dim); margin-top: 1px; }
   .about-author a {
     margin-left: auto;
-    font-family: "IBM Plex Mono", monospace;
     font-size: 12.5px;
+    font-weight: 500;
     color: var(--ink-dim);
-    border: 1px solid var(--line);
+    border: 1px solid var(--border-strong);
     padding: 7px 12px;
     border-radius: 6px;
     text-decoration: none;
     white-space: nowrap;
-    transition: border-color 0.15s ease, color 0.15s ease;
   }
   .about-author a:hover { border-color: var(--ink-dim); color: var(--ink); }
 
   footer {
-    max-width: 760px;
+    max-width: 740px;
     margin: 56px auto 0;
-    padding: 20px 20px 0;
-    border-top: 1px solid var(--line);
-    font-family: "IBM Plex Mono", monospace;
-    font-size: 11.5px;
+    padding: 18px 22px 0;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
     color: var(--ink-faint);
     display: flex;
     justify-content: space-between;
@@ -315,10 +303,10 @@
   footer a:hover { color: var(--ink-dim); }
 
   @media (max-width: 480px) {
-    nav { flex-direction: column; align-items: flex-start; gap: 14px; }
-    .tabs { align-self: stretch; }
-    .tab-btn { flex: 1; }
-    .summary { flex-direction: column; align-items: flex-start; }
+    .nav-inner { flex-direction: column; align-items: flex-start; gap: 12px; }
+    .tabs { gap: 18px; }
+    .summary { flex-direction: column; align-items: flex-start; text-align: left; }
+    .score-block { text-align: left; }
     form { flex-direction: column; }
     .about-author { flex-wrap: wrap; }
     .about-author a { margin-left: 0; }
@@ -328,10 +316,12 @@
 <body>
 
 <nav>
-  <div class="wordmark"><span class="dot"></span>headerscope</div>
-  <div class="tabs">
-    <button class="tab-btn active" data-tab="scan">Scan</button>
-    <button class="tab-btn" data-tab="about">About</button>
+  <div class="nav-inner">
+    <div class="wordmark">Headerscope</div>
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="scan">Scan</button>
+      <button class="tab-btn" data-tab="about">About</button>
+    </div>
   </div>
 </nav>
 
@@ -340,8 +330,8 @@
   <!-- Scan tab -->
   <div class="view active" id="view-scan">
     <div class="hero">
-      <h1>Check what a site <span style="color:var(--ink-dim)">actually sends</span> before you trust it.</h1>
-      <p class="lede">Paste a URL. This fetches the live response headers server-side and scores them against the controls that stop clickjacking, XSS, cookie theft, and downgrade attacks.</p>
+      <h1>See what a site's headers actually say.</h1>
+      <p class="lede">Paste a URL and this fetches the live response headers server-side, then checks them against the controls that stop clickjacking, XSS, cookie theft, and protocol downgrade attacks.</p>
     </div>
 
     <form id="scan-form">
@@ -352,17 +342,14 @@
 
     <div class="report" id="report">
       <div class="summary">
-        <div class="score-ring">
-          <svg width="84" height="84" viewBox="0 0 84 84">
-            <circle class="track" cx="42" cy="42" r="36"></circle>
-            <circle class="fill" id="score-circle" cx="42" cy="42" r="36"
-                    stroke-dasharray="226.19" stroke-dashoffset="226.19"></circle>
-          </svg>
+        <div class="score-block">
           <div class="score-num" id="score-num">—</div>
+          <div class="score-label">/ 100</div>
         </div>
-        <div class="summary-text">
+        <div class="summary-right">
           <div class="target" id="summary-url"></div>
           <div class="verdict" id="summary-verdict"></div>
+          <div class="score-bar"><div class="score-bar-fill" id="score-bar-fill" style="width:0%"></div></div>
         </div>
       </div>
       <div class="checks" id="checks"></div>
@@ -372,20 +359,20 @@
   <!-- About tab -->
   <div class="view" id="view-about">
     <div class="about">
-      <h1>A quick, honest read on a site's header posture.</h1>
-      <p class="lede">Most header scanners tell you whether a control exists. Few tell you whether it actually works. Headerscope is built to close that gap.</p>
+      <h1>A quick, honest read on a site's header posture</h1>
+      <p class="lede">Most header scanners tell you whether a control exists. Fewer tell you whether it actually works. Headerscope is built to close that gap.</p>
 
       <section>
         <h2>The problem</h2>
-        <p>Security headers like HSTS, CSP, and cookie flags are some of the cheapest defenses a site can ship — and some of the easiest to get wrong without noticing. A CSP full of <code>unsafe-inline</code> and wildcard sources passes most naive checks while offering almost no real protection. An HSTS header with <code>preload</code> but no <code>includeSubDomains</code> looks fine until you try to actually submit it to the preload list.</p>
-        <p>Teams need a fast way to see not just what's present, but what's actually doing its job — without installing anything or reading RFC text mid-incident.</p>
+        <p>Security headers like HSTS, CSP, and cookie flags are some of the cheapest defenses a site can ship — and some of the easiest to get subtly wrong. A CSP full of <code>unsafe-inline</code> and wildcard sources passes most naive checks while offering almost no real protection. An HSTS header with <code>preload</code> but no <code>includeSubDomains</code> looks fine until you try to actually submit it to the preload list.</p>
+        <p>Teams need a fast way to see not just what's present, but what's actually doing its job, without installing anything or reading RFC text mid-review.</p>
       </section>
 
       <section>
         <h2>What it checks</h2>
         <ul>
           <li>Strict-Transport-Security — presence, max-age, and real preload-list eligibility</li>
-          <li>Content-Security-Policy — presence, plus unsafe-inline / unsafe-eval / wildcard sources / missing object-src, base-uri, frame-ancestors</li>
+          <li>Content-Security-Policy — presence, plus unsafe-inline / unsafe-eval / wildcard sources and missing object-src, base-uri, or frame-ancestors</li>
           <li>X-Frame-Options and clickjacking coverage via CSP frame-ancestors</li>
           <li>X-Content-Type-Options, Referrer-Policy, Permissions-Policy</li>
           <li>Cookie flags — Secure, HttpOnly, and SameSite checked independently, across every Set-Cookie header observed</li>
@@ -395,12 +382,12 @@
 
       <section>
         <h2>How it works</h2>
-        <p>A Netlify serverless function performs a single read-only <code>GET</code> to the target, server-side — avoiding the CORS restrictions that stop a browser from reading cross-origin response headers directly. Nothing about the scanned URL is stored or logged.</p>
-        <p>Every request is checked against private, loopback, and link-local IP ranges before connecting (including redirect hops), rate-limited, time-boxed, and never reads the response body — details in the repo's README for anyone who wants to see the actual SSRF handling rather than take it on faith.</p>
+        <p>A Netlify serverless function performs a single read-only <code>GET</code> to the target, server-side — avoiding the CORS restrictions that stop a browser from reading cross-origin response headers directly. Nothing about a scanned URL is stored or logged.</p>
+        <p>Every request is checked against private, loopback, and link-local IP ranges before connecting, including on redirect hops, and is rate-limited and time-boxed. Full detail on the SSRF handling is in the repo README, rather than asked to be taken on faith.</p>
       </section>
 
       <div class="about-author">
-        <div class="avatar"></div>
+        <div class="avatar">O</div>
         <div>
           <div class="name">OwenRoot</div>
           <div class="role">Built this tool</div>
@@ -413,7 +400,7 @@
 </div>
 
 <footer>
-  <span>headerscope — read-only GET requests only</span>
+  <span>Headerscope — read-only GET requests only</span>
   <span>built by <a href="https://github.com/OwenRoot" target="_blank" rel="noopener">OwenRoot</a></span>
 </footer>
 
@@ -428,6 +415,11 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   });
 });
 
+// --- Icons (plain check / x, no decorative glow) ---
+const ICON_CHECK = '<svg class="glyph pass" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" stroke="currentColor" stroke-width="1.6"/><path d="M6 10.2l2.4 2.4L14 7.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const ICON_CROSS = '<svg class="glyph fail" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" stroke="currentColor" stroke-width="1.6"/><path d="M7 7l6 6M13 7l-6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
+const ICON_WEAK = '<svg class="glyph weak" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" stroke="currentColor" stroke-width="1.6"/><path d="M10 6v5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="10" cy="14" r="1" fill="currentColor"/></svg>';
+
 // --- Scan ---
 const form = document.getElementById('scan-form');
 const input = document.getElementById('url-input');
@@ -435,17 +427,15 @@ const btn = document.getElementById('scan-btn');
 const statusEl = document.getElementById('status');
 const report = document.getElementById('report');
 const checksEl = document.getElementById('checks');
-const scoreCircle = document.getElementById('score-circle');
 const scoreNum = document.getElementById('score-num');
+const scoreBarFill = document.getElementById('score-bar-fill');
 const summaryUrl = document.getElementById('summary-url');
 const summaryVerdict = document.getElementById('summary-verdict');
 
-const CIRC = 2 * Math.PI * 36;
-
 function verdictFor(score) {
-  if (score >= 85) return { text: 'Strong header posture.', color: 'var(--teal)' };
-  if (score >= 60) return { text: 'Partial coverage — some key controls missing.', color: 'var(--amber)' };
-  return { text: 'Weak header posture — several high-impact controls missing.', color: 'var(--coral)' };
+  if (score >= 85) return { text: 'Strong header posture.', color: 'var(--pass)' };
+  if (score >= 60) return { text: 'Partial coverage — some key controls missing.', color: 'var(--warn)' };
+  return { text: 'Weak header posture — several high-impact controls missing.', color: 'var(--fail)' };
 }
 
 form.addEventListener('submit', async (e) => {
@@ -468,7 +458,7 @@ form.addEventListener('submit', async (e) => {
     renderReport(data);
   } catch (err) {
     statusEl.className = 'status err';
-    statusEl.textContent = `✕ ${err.message}`;
+    statusEl.textContent = `Error: ${err.message}`;
   } finally {
     btn.disabled = false;
   }
@@ -479,21 +469,21 @@ function renderReport(data) {
   const v = verdictFor(data.score);
   summaryVerdict.textContent = v.text;
   summaryVerdict.style.color = v.color;
-
+  scoreNum.style.color = v.color;
   scoreNum.textContent = data.score;
-  const offset = CIRC - (CIRC * data.score) / 100;
-  scoreCircle.style.stroke = v.color;
-  requestAnimationFrame(() => { scoreCircle.style.strokeDashoffset = offset; });
+  scoreBarFill.style.background = v.color;
+  requestAnimationFrame(() => { scoreBarFill.style.width = data.score + '%'; });
 
   checksEl.innerHTML = '';
   data.checks.forEach(c => {
+    const icon = !c.pass ? ICON_CROSS : (c.weak ? ICON_WEAK : ICON_CHECK);
     const row = document.createElement('div');
-    row.className = 'check' + (c.weak ? ' weak' : '');
+    row.className = 'check';
     row.innerHTML = `
       <div class="check-top">
-        <div class="dot ${c.pass && !c.weak ? 'pass' : c.pass && c.weak ? 'weak' : 'fail'}"></div>
+        ${icon}
         <div class="check-label">${c.label}</div>
-        <div class="sev">${c.severity}</div>
+        <div class="impact ${c.severity}">${impactLabel(c.severity)}</div>
       </div>
       <div class="check-detail">${escapeHtml(c.detail)}</div>
     `;
@@ -501,6 +491,10 @@ function renderReport(data) {
   });
 
   report.classList.add('show');
+}
+
+function impactLabel(sev) {
+  return { high: 'High impact', medium: 'Medium impact', low: 'Low impact' }[sev] || sev;
 }
 
 function escapeHtml(str) {
