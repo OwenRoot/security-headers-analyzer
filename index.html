@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Headerscope — HTTP security header analyzer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #fafafa;
+    --panel: #ffffff;
+    --border: #e3e6eb;
+    --border-strong: #cdd2da;
+    --ink: #1b2026;
+    --ink-dim: #5b6472;
+    --ink-faint: #99a1ad;
+    --accent: #28539c;
+    --accent-bg: #eaf0fa;
+    --pass: #2f7a52;
+    --pass-bg: #eaf5ef;
+    --fail: #ab3a32;
+    --fail-bg: #fbebea;
+    --warn: #8a6315;
+    --warn-bg: #f7f0e1;
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Public Sans", -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  body { min-height: 100vh; }
+  a { color: var(--accent); }
+  code, .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; }
+
+  .wrap { max-width: 740px; margin: 0 auto; padding: 0 22px 80px; }
+
+  /* --- Nav --- */
+  nav {
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+  }
+  .nav-inner {
+    max-width: 740px;
+    margin: 0 auto;
+    padding: 18px 22px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .wordmark {
+    font-weight: 700;
+    font-size: 15.5px;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+  }
+  .tabs { display: flex; gap: 22px; }
+  .tab-btn {
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--ink-faint);
+    background: none;
+    border: none;
+    padding: 4px 0;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+  }
+  .tab-btn.active { color: var(--ink); border-bottom-color: var(--accent); }
+  .tab-btn:not(.active):hover { color: var(--ink-dim); }
+
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* --- Scan hero --- */
+  .hero { padding: 44px 0 8px; }
+  h1 {
+    font-size: clamp(25px, 4.2vw, 31px);
+    font-weight: 700;
+    line-height: 1.32;
+    letter-spacing: -0.015em;
+    margin: 0 0 13px;
+    color: var(--ink);
+    max-width: 18ch;
+  }
+  .lede {
+    font-size: 15.5px;
+    line-height: 1.65;
+    color: var(--ink-dim);
+    max-width: 54ch;
+    margin: 0;
+  }
+
+  form { display: flex; gap: 10px; margin-top: 28px; }
+  input[type="text"] {
+    flex: 1;
+    min-width: 0;
+    background: var(--panel);
+    border: 1px solid var(--border-strong);
+    color: var(--ink);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 14px;
+    padding: 12px 14px;
+    border-radius: 6px;
+    outline: none;
+  }
+  input[type="text"]::placeholder { color: var(--ink-faint); }
+  input[type="text"]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-bg); }
+  button {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 14px;
+    padding: 12px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  button:hover { background: #1f4480; }
+  button:disabled { opacity: 0.5; cursor: default; }
+
+  .status {
+    font-size: 13px;
+    color: var(--ink-dim);
+    margin-top: 12px;
+    min-height: 18px;
+  }
+  .status.err { color: var(--fail); }
+
+  /* --- Results --- */
+  .report { display: none; margin-top: 6px; }
+  .report.show { display: block; }
+
+  .summary {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 22px;
+    margin-top: 26px;
+  }
+  .score-block { flex-shrink: 0; text-align: center; }
+  .score-num {
+    font-size: 34px;
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .score-label {
+    font-size: 11px;
+    color: var(--ink-faint);
+    margin-top: 4px;
+    text-transform: lowercase;
+  }
+  .summary-right { flex: 1; min-width: 0; }
+  .summary-right .target {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12.5px;
+    color: var(--ink-dim);
+    word-break: break-all;
+  }
+  .summary-right .verdict { font-size: 15px; margin-top: 5px; font-weight: 600; }
+  .score-bar {
+    margin-top: 10px;
+    height: 5px;
+    border-radius: 3px;
+    background: var(--border);
+    overflow: hidden;
+  }
+  .score-bar-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+
+  .checks {
+    margin-top: 18px;
+    display: flex; flex-direction: column;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--panel);
+  }
+  .check { padding: 15px 18px; border-bottom: 1px solid var(--border); }
+  .check:last-child { border-bottom: none; }
+  .check-top { display: flex; align-items: flex-start; gap: 10px; }
+  .glyph {
+    width: 17px; height: 17px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .glyph.pass { color: var(--pass); }
+  .glyph.fail { color: var(--fail); }
+  .glyph.weak { color: var(--warn); }
+  .check-label { font-size: 14px; font-weight: 600; flex: 1; }
+  .impact {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 10px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .impact.high { color: var(--fail); background: var(--fail-bg); }
+  .impact.medium { color: var(--warn); background: var(--warn-bg); }
+  .impact.low { color: var(--ink-dim); background: var(--bg); }
+  .check-detail {
+    font-size: 13px;
+    color: var(--ink-dim);
+    margin: 7px 0 0 27px;
+    line-height: 1.6;
+    word-break: break-word;
+  }
+
+  /* --- About tab --- */
+  .about { padding: 44px 0 10px; }
+  .about h1 { max-width: none; margin-bottom: 14px; }
+  .about > .lede { margin-bottom: 0; }
+  .about section { margin-top: 36px; }
+  .about h2 {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 0 0 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .about p {
+    font-size: 14.5px;
+    line-height: 1.7;
+    color: var(--ink-dim);
+    max-width: 58ch;
+    margin: 0 0 10px;
+  }
+  .about ul { margin: 10px 0 0; padding-left: 19px; }
+  .about li {
+    font-size: 14.5px;
+    line-height: 1.7;
+    color: var(--ink-dim);
+    margin-bottom: 7px;
+  }
+  .about code {
+    font-size: 12.5px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    padding: 1px 6px;
+    border-radius: 4px;
+    color: var(--ink);
+  }
+  .about-author {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    margin-top: 36px;
+    padding: 18px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+  .about-author .avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .about-author .name { font-size: 14px; font-weight: 600; }
+  .about-author .role { font-size: 12.5px; color: var(--ink-dim); margin-top: 1px; }
+  .about-author a {
+    margin-left: auto;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--ink-dim);
+    border: 1px solid var(--border-strong);
+    padding: 7px 12px;
+    border-radius: 6px;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .about-author a:hover { border-color: var(--ink-dim); color: var(--ink); }
+
+  footer {
+    max-width: 740px;
+    margin: 56px auto 0;
+    padding: 18px 22px 0;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--ink-faint);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  footer a { color: var(--ink-faint); }
+  footer a:hover { color: var(--ink-dim); }
+
+  @media (max-width: 480px) {
+    .nav-inner { flex-direction: column; align-items: flex-start; gap: 12px; }
+    .tabs { gap: 18px; }
+    .summary { flex-direction: column; align-items: flex-start; text-align: left; }
+    .score-block { text-align: left; }
+    form { flex-direction: column; }
+    .about-author { flex-wrap: wrap; }
+    .about-author a { margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="wordmark">Headerscope</div>
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="scan">Scan</button>
+      <button class="tab-btn" data-tab="about">About</button>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <!-- Scan tab -->
+  <div class="view active" id="view-scan">
+    <div class="hero">
+      <h1>See what a site's headers actually say.</h1>
+      <p class="lede">Paste a URL and this fetches the live response headers server-side, then checks them against the controls that stop clickjacking, XSS, cookie theft, and protocol downgrade attacks.</p>
+    </div>
+
+    <form id="scan-form">
+      <input type="text" id="url-input" placeholder="example.com" autocomplete="off" spellcheck="false" />
+      <button type="submit" id="scan-btn">Scan</button>
+    </form>
+    <div class="status" id="status"></div>
+
+    <div class="report" id="report">
+      <div class="summary">
+        <div class="score-block">
+          <div class="score-num" id="score-num">—</div>
+          <div class="score-label">/ 100</div>
+        </div>
+        <div class="summary-right">
+          <div class="target" id="summary-url"></div>
+          <div class="verdict" id="summary-verdict"></div>
+          <div class="score-bar"><div class="score-bar-fill" id="score-bar-fill" style="width:0%"></div></div>
+        </div>
+      </div>
+      <div class="checks" id="checks"></div>
+    </div>
+  </div>
+
+  <!-- About tab -->
+  <div class="view" id="view-about">
+    <div class="about">
+      <h1>A quick, honest read on a site's header posture</h1>
+      <p class="lede">Most header scanners tell you whether a control exists. Fewer tell you whether it actually works. Headerscope is built to close that gap.</p>
+
+      <section>
+        <h2>The problem</h2>
+        <p>Security headers like HSTS, CSP, and cookie flags are some of the cheapest defenses a site can ship — and some of the easiest to get subtly wrong. A CSP full of <code>unsafe-inline</code> and wildcard sources passes most naive checks while offering almost no real protection. An HSTS header with <code>preload</code> but no <code>includeSubDomains</code> looks fine until you try to actually submit it to the preload list.</p>
+        <p>Teams need a fast way to see not just what's present, but what's actually doing its job, without installing anything or reading RFC text mid-review.</p>
+      </section>
+
+      <section>
+        <h2>What it checks</h2>
+        <ul>
+          <li>Strict-Transport-Security — presence, max-age, and real preload-list eligibility</li>
+          <li>Content-Security-Policy — presence, plus unsafe-inline / unsafe-eval / wildcard sources and missing object-src, base-uri, or frame-ancestors</li>
+          <li>X-Frame-Options and clickjacking coverage via CSP frame-ancestors</li>
+          <li>X-Content-Type-Options, Referrer-Policy, Permissions-Policy</li>
+          <li>Cookie flags — Secure, HttpOnly, and SameSite checked independently, across every Set-Cookie header observed</li>
+          <li>HTTPS enforcement and Server header version disclosure</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>How it works</h2>
+        <p>A Netlify serverless function performs a single read-only <code>GET</code> to the target, server-side — avoiding the CORS restrictions that stop a browser from reading cross-origin response headers directly. Nothing about a scanned URL is stored or logged.</p>
+        <p>Every request is checked against private, loopback, and link-local IP ranges before connecting, including on redirect hops, and is rate-limited and time-boxed. Full detail on the SSRF handling is in the repo README, rather than asked to be taken on faith.</p>
+      </section>
+
+      <div class="about-author">
+        <div class="avatar">O</div>
+        <div>
+          <div class="name">OwenRoot</div>
+          <div class="role">Built this tool</div>
+        </div>
+        <a href="https://github.com/OwenRoot/security-headers-analyzer" target="_blank" rel="noopener">Source on GitHub</a>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <span>Headerscope — read-only GET requests only</span>
+  <span>built by <a href="https://github.com/OwenRoot" target="_blank" rel="noopener">OwenRoot</a></span>
+</footer>
+
+<script>
+// --- Tabs ---
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('view-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+// --- Icons (plain check / x, no decorative glow) ---
+const ICON_CHECK = '<svg class="glyph pass" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" stroke="currentColor" stroke-width="1.6"/><path d="M6 10.2l2.4 2.4L14 7.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const ICON_CROSS = '<svg class="glyph fail" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" stroke="currentColor" stroke-width="1.6"/><path d="M7 7l6 6M13 7l-6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
+const ICON_WEAK = '<svg class="glyph weak" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" stroke="currentColor" stroke-width="1.6"/><path d="M10 6v5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="10" cy="14" r="1" fill="currentColor"/></svg>';
+
+// --- Scan ---
+const form = document.getElementById('scan-form');
+const input = document.getElementById('url-input');
+const btn = document.getElementById('scan-btn');
+const statusEl = document.getElementById('status');
+const report = document.getElementById('report');
+const checksEl = document.getElementById('checks');
+const scoreNum = document.getElementById('score-num');
+const scoreBarFill = document.getElementById('score-bar-fill');
+const summaryUrl = document.getElementById('summary-url');
+const summaryVerdict = document.getElementById('summary-verdict');
+
+function verdictFor(score) {
+  if (score >= 85) return { text: 'Strong header posture.', color: 'var(--pass)' };
+  if (score >= 60) return { text: 'Partial coverage — some key controls missing.', color: 'var(--warn)' };
+  return { text: 'Weak header posture — several high-impact controls missing.', color: 'var(--fail)' };
+}
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const raw = input.value.trim();
+  if (!raw) return;
+
+  btn.disabled = true;
+  statusEl.className = 'status';
+  statusEl.textContent = `Fetching headers for ${raw}…`;
+  report.classList.remove('show');
+
+  try {
+    const res = await fetch(`/.netlify/functions/check-headers?url=${encodeURIComponent(raw)}`);
+    const data = await res.json();
+
+    if (!res.ok) throw new Error(data.error || 'Scan failed');
+
+    statusEl.textContent = `Resolved ${data.finalUrl} — HTTP ${data.status}`;
+    renderReport(data);
+  } catch (err) {
+    statusEl.className = 'status err';
+    statusEl.textContent = `Error: ${err.message}`;
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+function renderReport(data) {
+  summaryUrl.textContent = data.finalUrl;
+  const v = verdictFor(data.score);
+  summaryVerdict.textContent = v.text;
+  summaryVerdict.style.color = v.color;
+  scoreNum.style.color = v.color;
+  scoreNum.textContent = data.score;
+  scoreBarFill.style.background = v.color;
+  requestAnimationFrame(() => { scoreBarFill.style.width = data.score + '%'; });
+
+  checksEl.innerHTML = '';
+  data.checks.forEach(c => {
+    const icon = !c.pass ? ICON_CROSS : (c.weak ? ICON_WEAK : ICON_CHECK);
+    const row = document.createElement('div');
+    row.className = 'check';
+    row.innerHTML = `
+      <div class="check-top">
+        ${icon}
+        <div class="check-label">${c.label}</div>
+        <div class="impact ${c.severity}">${impactLabel(c.severity)}</div>
+      </div>
+      <div class="check-detail">${escapeHtml(c.detail)}</div>
+    `;
+    checksEl.appendChild(row);
+  });
+
+  report.classList.add('show');
+}
+
+function impactLabel(sev) {
+  return { high: 'High impact', medium: 'Medium impact', low: 'Low impact' }[sev] || sev;
+}
+
+function escapeHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+</script>
+
+</body>
+</html>
